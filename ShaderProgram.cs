@@ -29,5 +29,7 @@ namespace TQ._3D_Test
 
         internal int GetAttributeLocation(string inputName)
             => Gl.GetAttribLocation(_handle, inputName);
+
+        public static explicit operator uint(ShaderProgram program) => program._handle;
     }
 }

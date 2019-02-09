@@ -22,7 +22,7 @@ namespace TQ._3D_Test
             {
                 nativeWindow.ContextCreated += ContextCreated;
                 nativeWindow.Render += Render;
-                nativeWindow.Create(0, 0, 256, 256, NativeWindowStyle.Overlapped);
+                nativeWindow.Create(0, 0, 512, 512, NativeWindowStyle.Overlapped);
                 nativeWindow.Show();
                 nativeWindow.Run();
             }
@@ -90,6 +90,17 @@ namespace TQ._3D_Test
                             }
                             Console.WriteLine(" OK!");
                         }
+                        {
+                            Console.Write($"Setting up uniforms...");
+                            _uniformTransformation = Gl.GetUniformLocation((uint)_program, "transformation");
+                            unsafe
+                            {
+
+                                var matrix = stackalloc float[16] { .5f, 0, 0, 0, 0, .5f, 0, 0, 0, 0, .5f, 0, 0, -.7f, 0, 1 };
+                                Gl.ProgramUniformMatrix4f((uint)_program, _uniformTransformation, 1, transpose: false, ref matrix[0]);
+                            }
+                            Console.WriteLine(" OK!");
+                        }
                     }
                 }
             }
@@ -100,6 +111,7 @@ namespace TQ._3D_Test
         Shader _fragmentShader;
         ShaderProgram _program;
         int _vertexCount;
+        int _uniformTransformation;
 
         void Render(object sender, NativeWindowEventArgs e)
         {
