@@ -1,6 +1,7 @@
 ﻿using OpenGL;
 using OpenGL.CoreUI;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using TQ.Mesh.Parts;
 using static TQ.Mesh.Parts.VertexBuffer;
@@ -41,7 +42,7 @@ namespace TQ._3D_Test
                     Console.Write("Loading VBO...");
                     _vbo = new Buffer();
                     _vbo.Bind(BufferTarget.ArrayBuffer);
-                    SGl.BufferData(BufferTarget.ArrayBuffer, vertexBuffer.Buffer, BufferUsage.StaticDraw);
+                    _vbo.BufferData(vertexBuffer.Buffer, BufferUsage.StaticDraw);
                     Console.Write(" OK!");
                     attributes = vertexBuffer.Attributes.ToArray();
                     Console.Write($" (also got {attributes.Length} attributes)");
@@ -95,7 +96,6 @@ namespace TQ._3D_Test
                             _uniformTransformation = Gl.GetUniformLocation((uint)_program, "transformation");
                             unsafe
                             {
-
                                 var matrix = stackalloc float[16] { .5f, 0, 0, 0, 0, .5f, 0, 0, 0, 0, .5f, 0, 0, -.7f, 0, 1 };
                                 Gl.ProgramUniformMatrix4f((uint)_program, _uniformTransformation, 1, transpose: false, ref matrix[0]);
                             }
@@ -103,24 +103,44 @@ namespace TQ._3D_Test
                         }
                     }
                 }
+                else if (part.Is(out IndexBuffer indexBuffer))
+                {
+                    Console.Write("Loading IBO...");
+                    _ibo = new Buffer();
+                    _ibo.Bind(BufferTarget.ElementArrayBuffer);
+                    _ibo.BufferData(indexBuffer.TriangleIndices, BufferUsage.StaticDraw);
+                    Console.WriteLine(" OK!");
+
+                    var drawRanges = new List<(int, int)>();
+                    foreach (var drawCall in indexBuffer)
+                    { drawRanges.Add((drawCall.Common.StartFaceIndex, drawCall.Common.FaceCount)); }
+                    _drawRanges = drawRanges.ToArray();
+                }
             }
         }
 
         Buffer _vbo;
+        Buffer _ibo;
         Shader _vertexShader;
         Shader _fragmentShader;
         ShaderProgram _program;
         int _vertexCount;
         int _uniformTransformation;
+        (int, int)[] _drawRanges;
 
         void Render(object sender, NativeWindowEventArgs e)
         {
-            Gl.DrawArrays(PrimitiveType.Points, 0, _vertexCount);
+            foreach (var (first, count) in _drawRanges)
+            { Gl.DrawElements(PrimitiveType.Triangles, count * 3, DrawElementsType.UnsignedShort, (IntPtr)(first * sizeof(ushort))); }
         }
 
         public void Dispose()
         {
             _vbo.Dispose();
+            _ibo.Dispose();
+            _vertexShader.Dispose();
+            _fragmentShader.Dispose();
+            _program.Dispose();
         }
     }
 }
