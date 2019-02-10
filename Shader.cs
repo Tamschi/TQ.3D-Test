@@ -19,7 +19,7 @@ namespace TQ._3D_Test
                 {
                     case Gl.TRUE: break;
                     case int abnormal:
-                        var logBuilder = new StringBuilder();
+                        var logBuilder = new StringBuilder(1024);
                         Gl.GetShaderInfoLog(_handle, 1024, out var length, logBuilder);
                         logBuilder.Length = length;
                         throw new ShaderNotCompiledProperlyException(abnormal, logBuilder.ToString());

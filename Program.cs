@@ -1,10 +1,12 @@
-﻿using OpenGL;
+﻿using DDS;
+using OpenGL;
 using OpenGL.CoreUI;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using TQ.Mesh.Parts;
 using static TQ.Mesh.Parts.VertexBuffer;
+using TQTexture = global::TQ.Texture.Texture;
 
 namespace TQ._3D_Test
 {
@@ -13,9 +15,7 @@ namespace TQ._3D_Test
         static void Main(string[] args)
         {
             using (var program = new Program())
-            {
-                program.Run();
-            }
+            { program.Run(); }
         }
         void Run()
         {
@@ -24,6 +24,7 @@ namespace TQ._3D_Test
                 nativeWindow.ContextCreated += ContextCreated;
                 nativeWindow.Render += Render;
                 nativeWindow.Create(0, 0, 512, 512, NativeWindowStyle.Overlapped);
+                nativeWindow.DepthBits = 32;
                 nativeWindow.Show();
                 nativeWindow.Run();
             }
@@ -33,6 +34,56 @@ namespace TQ._3D_Test
         {
             AttributeId[] attributes = null;
             int vertexStride = -1;
+
+            {
+                var texture = new TQTexture(File.ReadAllBytes("texture.tex"));
+                _texture = new Texture();
+                _texture.Bind(TextureTarget.Texture2d);
+                _texture.Parameteri(TextureParameterName.TextureWrapS, TextureWrapMode.Repeat);
+                _texture.Parameteri(TextureParameterName.TextureWrapT, TextureWrapMode.Repeat);
+                _texture.Parameteri(TextureParameterName.TextureMinFilter, TextureMinFilter.Linear);
+                _texture.Parameteri(TextureParameterName.TextureMagFilter, TextureMagFilter.Linear);
+                foreach (var frame in texture)
+                {
+                    var dds = new DDS.DDS(frame.Data);
+                    InternalFormat internalFormat;
+                    if (dds.Header.Capabilities.HasFlag(Capabilities.Complex))
+                    {
+                        switch (dds.Header.PixelFormat.FourCC)
+                        {
+                            case "DXT5": internalFormat = InternalFormat.CompressedSrgbAlphaS3tcDxt5Ext; break;
+                            default: throw new NotImplementedException();
+                        }
+                    }
+                    else throw new NotImplementedException();
+                    foreach (var layer in dds)
+                    {
+                        int level = 0;
+                        Console.WriteLine($"Error: {Gl.GetError()}");
+                        foreach (var mip in layer)
+                        {
+                            unsafe
+                            {
+                                fixed (byte* ptr = mip.Data)
+                                {
+                                    Gl.CompressedTexImage2D(
+                                        TextureTarget.Texture2d,
+                                        level++,
+                                        internalFormat,
+                                        width: (int)Math.Max(1, (dds.Header.Width * 2) >> level),
+                                        height: (int)Math.Max(1, (dds.Header.Height * 2) >> level),
+                                        border: 0,
+                                        mip.Data.Length,
+                                        (IntPtr)ptr);
+                                    Console.WriteLine($"Error: {Gl.GetError()}");
+                                }
+                            }
+                        }
+                        break; //TODO: Further layers.
+                    }
+                    break; //TODO: Further frames.
+                }
+            }
 
             var mesh = new Mesh.Mesh(File.ReadAllBytes("mesh.msh"));
             foreach (var part in mesh)
@@ -66,21 +117,27 @@ namespace TQ._3D_Test
                         }
                         {
                             Console.Write($"Setting up attibutes...");
-                            int positionAttribute = _program.GetAttributeLocation("position");
-                            int offset = 0;
+                            var positionAttribute = _program.GetAttributeLocation("position");
+                            var uvAttribute = _program.GetAttributeLocation("uv");
+                            var offset = 0;
                             foreach (var attribute in attributes)
                             {
                                 switch (attribute)
                                 {
                                     case AttributeId.Position:
-                                        Console.Write($" position...");
-                                        Gl.VertexAttribPointer((uint)positionAttribute, 3, VertexAttribType.Float, normalized: false, vertexStride, (IntPtr)offset);
+                                        Console.Write(" position...");
+                                        Gl.VertexAttribPointer((uint)positionAttribute, size: 3, VertexAttribType.Float, normalized: false, vertexStride, (IntPtr)offset);
                                         Gl.EnableVertexAttribArray((uint)positionAttribute);
                                         break;
                                     case AttributeId.Normal:
                                     case AttributeId.Tangent:
                                     case AttributeId.Bitangent:
+                                        break;
                                     case AttributeId.UV:
+                                        Console.Write(" uv...");
+                                        Gl.VertexAttribPointer((uint)uvAttribute, size: 2, VertexAttribType.Float, normalized: false, vertexStride, (IntPtr)offset);
+                                        Gl.EnableVertexAttribArray((uint)uvAttribute);
+                                        break;
                                     case AttributeId.Weights:
                                     case AttributeId.Bones:
                                     case AttributeId.Bytes:
@@ -119,6 +176,8 @@ namespace TQ._3D_Test
             }
         }
 
+        Texture _texture;
+
         Buffer _vbo;
         Buffer _ibo;
         Shader _vertexShader;
@@ -130,6 +189,10 @@ namespace TQ._3D_Test
 
         void Render(object sender, NativeWindowEventArgs e)
         {
+            Gl.Enable(EnableCap.CullFace);
+            Gl.CullFace(CullFaceMode.Front);
+            Gl.FrontFace(FrontFaceDirection.Ccw);
+            Gl.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
             foreach (var (first, count) in _drawRanges)
             { Gl.DrawElements(PrimitiveType.Triangles, count * 3, DrawElementsType.UnsignedShort, (IntPtr)(first * sizeof(ushort))); }
         }
