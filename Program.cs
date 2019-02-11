@@ -1,4 +1,5 @@
 ﻿using DDS;
+using MathNet.Numerics.LinearAlgebra;
 using OpenGL;
 using OpenGL.CoreUI;
 using System;
@@ -7,6 +8,8 @@ using System.IO;
 using TQ.Mesh.Parts;
 using static TQ.Mesh.Parts.VertexBuffer;
 using TQTexture = global::TQ.Texture.Texture;
+using MathNet.Numerics.LinearAlgebra.Single;
+using System.Linq;
 
 namespace TQ._3D_Test
 {
@@ -33,7 +36,6 @@ namespace TQ._3D_Test
         private void ContextCreated(object sender, NativeWindowEventArgs e)
         {
             AttributeId[] attributes = null;
-            int vertexStride = -1;
 
             {
                 var texture = new TQTexture(File.ReadAllBytes("texture.tex"));
@@ -51,7 +53,7 @@ namespace TQ._3D_Test
                     {
                         switch (dds.Header.PixelFormat.FourCC)
                         {
-                            case "DXT5": internalFormat = InternalFormat.CompressedSrgbAlphaS3tcDxt5Ext; break;
+                            case "DXT5": internalFormat = InternalFormat.CompressedRgbaS3tcDxt5Ext; break;
                             default: throw new NotImplementedException();
                         }
                     }
@@ -97,8 +99,8 @@ namespace TQ._3D_Test
                     Console.Write(" OK!");
                     attributes = vertexBuffer.Attributes.ToArray();
                     Console.Write($" (also got {attributes.Length} attributes)");
-                    vertexStride = vertexBuffer.Header.Stride;
-                    Console.WriteLine($" (also got stride {vertexStride})");
+                    _vertexStride = vertexBuffer.Header.Stride;
+                    Console.WriteLine($" (also got stride {_vertexStride})");
                     _vertexCount = vertexBuffer.Header.VertexCount;
                     Console.WriteLine($" (also got vertex count {_vertexCount})");
                 }
@@ -117,8 +119,8 @@ namespace TQ._3D_Test
                         }
                         {
                             Console.Write($"Setting up attibutes...");
-                            var positionAttribute = _program.GetAttributeLocation("position");
-                            var uvAttribute = _program.GetAttributeLocation("uv");
+                            _positionAttribute = (uint)_program.GetAttributeLocation("position");
+                            _uvAttribute = (uint)_program.GetAttributeLocation("uv");
                             var offset = 0;
                             foreach (var attribute in attributes)
                             {
@@ -126,8 +128,7 @@ namespace TQ._3D_Test
                                 {
                                     case AttributeId.Position:
                                         Console.Write(" position...");
-                                        Gl.VertexAttribPointer((uint)positionAttribute, size: 3, VertexAttribType.Float, normalized: false, vertexStride, (IntPtr)offset);
-                                        Gl.EnableVertexAttribArray((uint)positionAttribute);
+                                        _positionOffset = (IntPtr)offset;
                                         break;
                                     case AttributeId.Normal:
                                     case AttributeId.Tangent:
@@ -135,8 +136,7 @@ namespace TQ._3D_Test
                                         break;
                                     case AttributeId.UV:
                                         Console.Write(" uv...");
-                                        Gl.VertexAttribPointer((uint)uvAttribute, size: 2, VertexAttribType.Float, normalized: false, vertexStride, (IntPtr)offset);
-                                        Gl.EnableVertexAttribArray((uint)uvAttribute);
+                                        _uvOffset = (IntPtr)offset;
                                         break;
                                     case AttributeId.Weights:
                                     case AttributeId.Bones:
@@ -173,8 +173,71 @@ namespace TQ._3D_Test
                     { drawRanges.Add((drawCall.Common.StartFaceIndex, drawCall.Common.FaceCount)); }
                     _drawRanges = drawRanges.ToArray();
                 }
+                else if (part.Is(out Bones bones))
+                {
+                    Console.Write("Loading Bones...");
+                    _boneMatrices = new DenseMatrix[bones.Count];
+                    _bonePositions = new DenseVector[bones.Count];
+                    for (int i = 0; i < _boneMatrices.Length; i++)
+                    { _boneMatrices[i] = DenseMatrix.CreateIdentity(4); }
+
+                    foreach (var bone in bones)
+                    {
+                        var i = bone.Index;
+                        var position = new DenseVector(new[] { bone.Position[0], bone.Position[1], bone.Position[2], 1 });
+                        _bonePositions[i] = _boneMatrices[i] * position;
+                        var boneMatrix = new DenseMatrix(4, 4, new[] {
+                            bone.Axes[0], bone.Axes[1],bone.Axes[2],0,
+                            bone.Axes[3],bone.Axes[4],bone.Axes[5],0,
+                            bone.Axes[6],bone.Axes[7],bone.Axes[8],0,
+                            bone.Position[0],bone.Position[1],bone.Position[2],1
+                        });
+                        _boneMatrices[i] *= boneMatrix;
+                        foreach (var childBone in bone)
+                        { _boneMatrices[childBone.Index] = _boneMatrices[i]; }
+                    }
+
+                    _boneVbo = new Buffer();
+                    Gl.CheckErrors();
+                    Span<float> boneVboData = _bonePositions.SelectMany(x => new[] { x[0] / 2, x[1] / 2 - .7f, x[2] / 2 }).ToArray().AsSpan();
+                    _boneVbo.BufferData(boneVboData, BufferUsage.StaticDraw);
+                    Gl.CheckErrors();
+
+                    //TODO: LINQ it!
+                    _boneIbo = new Buffer();
+                    Gl.CheckErrors();
+                    var boneIboEntries = new List<(int, int)>();
+                    foreach (var parent in bones) foreach (var child in parent) boneIboEntries.Add((parent.Index, child.Index));
+                    _boneIbo.BufferData(boneIboEntries.SelectMany(x => new[] { (ushort)x.Item1, (ushort)x.Item2 }).ToArray().AsSpan(), BufferUsage.StaticDraw);
+                    Gl.CheckErrors();
+                    _boneLinkCount = boneIboEntries.Count;
+
+                    var vertexShader = new Shader(ShaderType.VertexShader, File.ReadAllText("bones.vertex.glsl"));
+                    Gl.CheckErrors();
+                    var fragmentShader = new Shader(ShaderType.FragmentShader, File.ReadAllText("bones.fragment.glsl"));
+                    Gl.CheckErrors();
+                    _boneProgram = new ShaderProgram(vertexShader, fragmentShader);
+                    Gl.CheckErrors();
+                    _boneProgram.Link();
+                    Gl.CheckErrors();
+                    _boneProgram.Use();
+                    Gl.CheckErrors();
+                    _bonePositionAttribute = (uint)_boneProgram.GetAttributeLocation("position");
+                    Console.WriteLine(" OK!");
+
+                    Gl.CheckErrors();
+                }
             }
         }
+
+        Matrix<float>[] _boneMatrices;
+        Vector<float>[] _bonePositions;
+        ShaderProgram _boneProgram;
+        uint _bonePositionAttribute;
+
+        Buffer _boneVbo;
+        Buffer _boneIbo;
+        int _boneLinkCount;
 
         Texture _texture;
 
@@ -186,15 +249,39 @@ namespace TQ._3D_Test
         int _vertexCount;
         int _uniformTransformation;
         (int, int)[] _drawRanges;
+        uint _positionAttribute;
+        IntPtr _positionOffset;
+        uint _uvAttribute;
+        IntPtr _uvOffset;
+        int _vertexStride;
 
         void Render(object sender, NativeWindowEventArgs e)
         {
+            Gl.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+
+            _program.Use();
             Gl.Enable(EnableCap.CullFace);
             Gl.CullFace(CullFaceMode.Front);
             Gl.FrontFace(FrontFaceDirection.Ccw);
-            Gl.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+            _vbo.Bind(BufferTarget.ArrayBuffer);
+            _ibo.Bind(BufferTarget.ElementArrayBuffer);
+            Gl.VertexAttribPointer(_positionAttribute, size: 3, VertexAttribType.Float, normalized: false, _vertexStride, _positionOffset);
+            Gl.EnableVertexAttribArray(_positionAttribute);
+            Gl.VertexAttribPointer(_uvAttribute, size: 2, VertexAttribType.Float, normalized: false, _vertexStride, _uvOffset);
+            Gl.EnableVertexAttribArray(_uvAttribute);
             foreach (var (first, count) in _drawRanges)
             { Gl.DrawElements(PrimitiveType.Triangles, count * 3, DrawElementsType.UnsignedShort, (IntPtr)(first * sizeof(ushort))); }
+            Gl.DisableVertexAttribArray(_uvAttribute);
+            Gl.DisableVertexAttribArray(_positionAttribute);
+            
+            _boneProgram.Use();
+            Gl.Disable(EnableCap.CullFace);
+            _boneVbo.Bind(BufferTarget.ArrayBuffer);
+            _boneIbo.Bind(BufferTarget.ElementArrayBuffer);
+            Gl.VertexAttribPointer(_bonePositionAttribute, size: 3, VertexAttribType.Float, normalized: false, 3 * sizeof(float), IntPtr.Zero);
+            Gl.EnableVertexAttribArray((uint)_bonePositionAttribute);
+            Gl.DrawElements(PrimitiveType.Lines, _boneLinkCount * 2, DrawElementsType.UnsignedShort, IntPtr.Zero);
+            Gl.DisableVertexAttribArray(_bonePositionAttribute);
         }
 
         public void Dispose()
