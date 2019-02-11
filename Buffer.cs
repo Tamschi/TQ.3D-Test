@@ -6,7 +6,7 @@ namespace TQ._3D_Test
     class Buffer : IDisposable
     {
         readonly uint _handle;
-        public Buffer(bool _ = true) => _handle = Gl.GenBuffer();
+        public Buffer(bool _ = true) => _handle = Gl.CreateBuffer();
         ~Buffer() => Dispose();
         public void Dispose()
         {
