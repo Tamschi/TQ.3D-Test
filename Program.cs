@@ -92,7 +92,6 @@ namespace TQ._3D_Test
                 {
                     Console.Write("Loading VBO...");
                     _vbo = new Buffer();
-                    _vbo.Bind(BufferTarget.ArrayBuffer);
                     _vbo.BufferData(vertexBuffer.Buffer, BufferUsage.StaticDraw);
                     Console.Write(" OK!");
                     attributes = vertexBuffer.Attributes.ToArray();
@@ -119,14 +118,14 @@ namespace TQ._3D_Test
                             Console.Write($"Setting up attibutes...");
                             _positionAttribute = (uint)_program.GetAttributeLocation("position");
                             _uvAttribute = (uint)_program.GetAttributeLocation("uv");
-                            var offset = 0;
+                            var offset = 0u;
                             foreach (var attribute in attributes)
                             {
                                 switch (attribute)
                                 {
                                     case AttributeId.Position:
                                         Console.Write(" position...");
-                                        _positionOffset = (IntPtr)offset;
+                                        _positionOffset = offset;
                                         break;
                                     case AttributeId.Normal:
                                     case AttributeId.Tangent:
@@ -134,7 +133,7 @@ namespace TQ._3D_Test
                                         break;
                                     case AttributeId.UV:
                                         Console.Write(" uv...");
-                                        _uvOffset = (IntPtr)offset;
+                                        _uvOffset = offset;
                                         break;
                                     case AttributeId.Weights:
                                     case AttributeId.Bones:
@@ -249,9 +248,9 @@ namespace TQ._3D_Test
         int _uniformTransformation;
         (int, int)[] _drawRanges;
         uint _positionAttribute;
-        IntPtr _positionOffset;
+        uint _positionOffset;
         uint _uvAttribute;
-        IntPtr _uvOffset;
+        uint _uvOffset;
         int _vertexStride;
 
         void Render(object sender, NativeWindowEventArgs e)
@@ -262,13 +261,15 @@ namespace TQ._3D_Test
             Gl.Enable(EnableCap.CullFace);
             Gl.CullFace(CullFaceMode.Front);
             Gl.FrontFace(FrontFaceDirection.Ccw);
-            _vbo.Bind(BufferTarget.ArrayBuffer);
+            _vbo.BindVertex(0, IntPtr.Zero, _vertexStride);
+            Gl.VertexAttribFormat(_positionAttribute, 3, Gl.FLOAT, normalized: false, _positionOffset);
+            Gl.VertexAttribBinding(_positionAttribute, 0);
+            Gl.EnableVertexAttribArray(_positionAttribute);
+            Gl.VertexAttribFormat(_uvAttribute, 2, Gl.FLOAT, normalized: false, _uvOffset);
+            Gl.VertexAttribBinding(_uvAttribute, 0);
+            Gl.EnableVertexAttribArray(_uvAttribute);
             _ibo.Bind(BufferTarget.ElementArrayBuffer);
             _texture.BindUnit(0);
-            Gl.VertexAttribPointer(_positionAttribute, size: 3, VertexAttribType.Float, normalized: false, _vertexStride, _positionOffset);
-            Gl.EnableVertexAttribArray(_positionAttribute);
-            Gl.VertexAttribPointer(_uvAttribute, size: 2, VertexAttribType.Float, normalized: false, _vertexStride, _uvOffset);
-            Gl.EnableVertexAttribArray(_uvAttribute);
             foreach (var (first, count) in _drawRanges)
             { Gl.DrawElements(PrimitiveType.Triangles, count * 3, DrawElementsType.UnsignedShort, (IntPtr)(first * sizeof(ushort))); }
             Gl.DisableVertexAttribArray(_uvAttribute);
@@ -276,10 +277,11 @@ namespace TQ._3D_Test
 
             _boneProgram.Use();
             Gl.Disable(EnableCap.CullFace);
-            _boneVbo.Bind(BufferTarget.ArrayBuffer);
-            _boneIbo.Bind(BufferTarget.ElementArrayBuffer);
-            Gl.VertexAttribPointer(_bonePositionAttribute, size: 3, VertexAttribType.Float, normalized: false, 3 * sizeof(float), IntPtr.Zero);
+            _boneVbo.BindVertex(0, IntPtr.Zero, 3 * sizeof(float));
+            Gl.VertexAttribFormat(_bonePositionAttribute, size: 3, Gl.FLOAT, normalized: false, relativeoffset: 0);
+            Gl.VertexAttribBinding(_bonePositionAttribute, 0);
             Gl.EnableVertexAttribArray(_bonePositionAttribute);
+            _boneIbo.Bind(BufferTarget.ElementArrayBuffer);
             Gl.DrawElements(PrimitiveType.Lines, _boneLinkCount * 2, DrawElementsType.UnsignedShort, IntPtr.Zero);
             Gl.DisableVertexAttribArray(_bonePositionAttribute);
         }
