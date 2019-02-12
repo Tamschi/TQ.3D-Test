@@ -3,16 +3,12 @@ using System;
 
 namespace TQ._3D_Test
 {
-    class Buffer : IDisposable
+    readonly struct Buffer : IDisposable
     {
         readonly uint _handle;
         public Buffer(bool _ = true) => _handle = Gl.CreateBuffer();
-        ~Buffer() => Dispose();
-        public void Dispose()
-        {
-            Gl.DeleteBuffers(_handle);
-            GC.SuppressFinalize(this);
-        }
+
+        public void Dispose() => Gl.DeleteBuffers(_handle);
 
         public static explicit operator uint(Buffer buffer) => buffer._handle;
 

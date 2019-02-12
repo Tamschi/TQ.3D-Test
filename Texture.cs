@@ -3,16 +3,12 @@ using System;
 
 namespace TQ._3D_Test
 {
-    class Texture : IDisposable
+    readonly struct Texture : IDisposable
     {
         readonly uint _handle;
         public Texture(TextureTarget target) => _handle = Gl.CreateTexture(target);
-        ~Texture() => Dispose();
-        public void Dispose()
-        {
-            Gl.DeleteTextures(_handle);
-            GC.SuppressFinalize(this);
-        }
+
+        public void Dispose() => Gl.DeleteTextures(_handle);
 
         public void BindUnit(uint unit) => Gl.BindTextureUnit(unit, _handle);
 

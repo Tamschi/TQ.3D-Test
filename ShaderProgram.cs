@@ -3,7 +3,7 @@ using System;
 
 namespace TQ._3D_Test
 {
-    internal class ShaderProgram : IDisposable
+    readonly struct ShaderProgram : IDisposable
     {
         readonly uint _handle;
 
@@ -20,12 +20,7 @@ namespace TQ._3D_Test
         public void Link() => Gl.LinkProgram(_handle);
         public void Use() => Gl.UseProgram(_handle);
 
-        ~ShaderProgram() => Dispose();
-        public void Dispose()
-        {
-            Gl.DeleteProgram(_handle);
-            GC.SuppressFinalize(this);
-        }
+        public void Dispose() => Gl.DeleteProgram(_handle);
 
         internal int GetAttributeLocation(string inputName)
             => Gl.GetAttribLocation(_handle, inputName);

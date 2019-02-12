@@ -92,7 +92,7 @@ namespace TQ._3D_Test
                 if (part.Is(out VertexBuffer vertexBuffer))
                 {
                     Console.Write("Loading VBO...");
-                    _vbo = new Buffer();
+                    _vbo = new Buffer(true);
                     _vbo.BufferData(vertexBuffer.Buffer, BufferUsage.StaticDraw);
                     Console.Write(" OK!");
                     attributes = vertexBuffer.Attributes.ToArray();
@@ -161,7 +161,7 @@ namespace TQ._3D_Test
                 else if (part.Is(out IndexBuffer indexBuffer))
                 {
                     Console.Write("Loading IBO...");
-                    _ibo = new Buffer();
+                    _ibo = new Buffer(true);
                     _ibo.Bind(BufferTarget.ElementArrayBuffer);
                     _ibo.BufferData(indexBuffer.TriangleIndices, BufferUsage.StaticDraw);
                     Console.WriteLine(" OK!");
@@ -197,14 +197,14 @@ namespace TQ._3D_Test
                         { _boneMatrices[childBone.Index] = _boneMatrices[i]; }
                     }
 
-                    _boneVbo = new Buffer();
+                    _boneVbo = new Buffer(true);
                     Gl.CheckErrors();
                     Span<Vector3> boneVboData = (from p in _bonePositions select new Vector3(p.X / 2, p.Y / 2 - .7f, p.Z / 2)).ToArray().AsSpan();
                     _boneVbo.BufferData(boneVboData, BufferUsage.StaticDraw);
                     Gl.CheckErrors();
 
                     //TODO: LINQ it!
-                    _boneIbo = new Buffer();
+                    _boneIbo = new Buffer(true);
                     Gl.CheckErrors();
                     var boneIboEntries = new List<(int, int)>();
                     foreach (var parent in bones) foreach (var child in parent) boneIboEntries.Add((parent.Index, child.Index));

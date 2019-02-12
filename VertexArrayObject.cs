@@ -3,7 +3,7 @@ using System;
 
 namespace TQ._3D_Test
 {
-    struct VertexArrayObject : IDisposable
+    readonly struct VertexArrayObject : IDisposable
     {
         readonly uint _handle;
         public VertexArrayObject(bool _ = true) => _handle = Gl.CreateVertexArray();
