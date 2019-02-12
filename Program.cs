@@ -92,13 +92,12 @@ namespace TQ._3D_Test
                 if (part.Is(out VertexBuffer vertexBuffer))
                 {
                     Console.Write("Loading VBO...");
-                    _vbo = new Buffer(true);
-                    _vbo.BufferData(vertexBuffer.Buffer, BufferUsage.StaticDraw);
+                    var vbo = new Buffer(true);
+                    _vao.VertexBuffer(0, vbo, IntPtr.Zero, vertexBuffer.Header.Stride);
+                    vbo.BufferData(vertexBuffer.Buffer, BufferUsage.StaticDraw);
                     Console.Write(" OK!");
                     attributes = vertexBuffer.Attributes.ToArray();
                     Console.Write($" (also got {attributes.Length} attributes)");
-                    _vertexStride = vertexBuffer.Header.Stride;
-                    Console.WriteLine($" (also got stride {_vertexStride})");
                     _vertexCount = vertexBuffer.Header.VertexCount;
                     Console.WriteLine($" (also got vertex count {_vertexCount})");
                 }
@@ -161,9 +160,9 @@ namespace TQ._3D_Test
                 else if (part.Is(out IndexBuffer indexBuffer))
                 {
                     Console.Write("Loading IBO...");
-                    _ibo = new Buffer(true);
-                    _ibo.Bind(BufferTarget.ElementArrayBuffer);
-                    _ibo.BufferData(indexBuffer.TriangleIndices, BufferUsage.StaticDraw);
+                    var ibo = new Buffer(true);
+                    _vao.ElementBuffer(ibo);
+                    ibo.BufferData(indexBuffer.TriangleIndices, BufferUsage.StaticDraw);
                     Console.WriteLine(" OK!");
 
                     var drawRanges = new List<(int, int)>();
@@ -197,18 +196,20 @@ namespace TQ._3D_Test
                         { _boneMatrices[childBone.Index] = _boneMatrices[i]; }
                     }
 
-                    _boneVbo = new Buffer(true);
+                    var boneVbo = new Buffer(true);
+                    _boneVao.VertexBuffer(0, boneVbo, IntPtr.Zero, 3 * sizeof(float));
                     Gl.CheckErrors();
                     Span<Vector3> boneVboData = (from p in _bonePositions select new Vector3(p.X / 2, p.Y / 2 - .7f, p.Z / 2)).ToArray().AsSpan();
-                    _boneVbo.BufferData(boneVboData, BufferUsage.StaticDraw);
+                    boneVbo.BufferData(boneVboData, BufferUsage.StaticDraw);
                     Gl.CheckErrors();
 
                     //TODO: LINQ it!
-                    _boneIbo = new Buffer(true);
+                    var boneIbo = new Buffer(true);
+                    _boneVao.ElementBuffer(boneIbo);
                     Gl.CheckErrors();
                     var boneIboEntries = new List<(int, int)>();
                     foreach (var parent in bones) foreach (var child in parent) boneIboEntries.Add((parent.Index, child.Index));
-                    _boneIbo.BufferData(boneIboEntries.SelectMany(x => new[] { (ushort)x.Item1, (ushort)x.Item2 }).ToArray().AsSpan(), BufferUsage.StaticDraw);
+                    boneIbo.BufferData(boneIboEntries.SelectMany(x => new[] { (ushort)x.Item1, (ushort)x.Item2 }).ToArray().AsSpan(), BufferUsage.StaticDraw);
                     Gl.CheckErrors();
                     _boneLinkCount = boneIboEntries.Count;
 
@@ -236,15 +237,11 @@ namespace TQ._3D_Test
         uint _bonePositionAttribute;
 
         VertexArrayObject _boneVao;
-        Buffer _boneVbo;
-        Buffer _boneIbo;
         int _boneLinkCount;
 
         Texture _texture;
 
         VertexArrayObject _vao;
-        Buffer _vbo;
-        Buffer _ibo;
         Shader _vertexShader;
         Shader _fragmentShader;
         ShaderProgram _program;
@@ -255,7 +252,6 @@ namespace TQ._3D_Test
         uint _positionOffset;
         uint _uvAttribute;
         uint _uvOffset;
-        int _vertexStride;
 
         void Render(object sender, NativeWindowEventArgs e)
         {
@@ -266,14 +262,12 @@ namespace TQ._3D_Test
             Gl.Enable(EnableCap.CullFace);
             Gl.CullFace(CullFaceMode.Front);
             Gl.FrontFace(FrontFaceDirection.Ccw);
-            _vao.VertexBuffer(0, _vbo, IntPtr.Zero, _vertexStride);
             Gl.VertexAttribFormat(_positionAttribute, 3, Gl.FLOAT, normalized: false, _positionOffset);
             Gl.VertexAttribBinding(_positionAttribute, 0);
             Gl.EnableVertexAttribArray(_positionAttribute);
             Gl.VertexAttribFormat(_uvAttribute, 2, Gl.FLOAT, normalized: false, _uvOffset);
             Gl.VertexAttribBinding(_uvAttribute, 0);
             Gl.EnableVertexAttribArray(_uvAttribute);
-            _vao.ElementBuffer(_ibo);
             _texture.BindUnit(0);
             foreach (var (first, count) in _drawRanges)
             { Gl.DrawElements(PrimitiveType.Triangles, count * 3, DrawElementsType.UnsignedShort, (IntPtr)(first * sizeof(ushort))); }
@@ -283,19 +277,15 @@ namespace TQ._3D_Test
             _boneVao.Bind();
             _boneProgram.Use();
             Gl.Disable(EnableCap.CullFace);
-            _boneVao.VertexBuffer(0, _boneVbo, IntPtr.Zero, 3 * sizeof(float));
             Gl.VertexAttribFormat(_bonePositionAttribute, size: 3, Gl.FLOAT, normalized: false, relativeoffset: 0);
             Gl.VertexAttribBinding(_bonePositionAttribute, 0);
             Gl.EnableVertexAttribArray(_bonePositionAttribute);
-            _boneIbo.Bind(BufferTarget.ElementArrayBuffer);
             Gl.DrawElements(PrimitiveType.Lines, _boneLinkCount * 2, DrawElementsType.UnsignedShort, IntPtr.Zero);
             Gl.DisableVertexAttribArray(_bonePositionAttribute);
         }
 
         public void Dispose()
         {
-            _vbo.Dispose();
-            _ibo.Dispose();
             _vertexShader.Dispose();
             _fragmentShader.Dispose();
             _program.Dispose();
