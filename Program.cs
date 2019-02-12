@@ -260,6 +260,7 @@ namespace TQ._3D_Test
             _boneProgram.Use();
             Gl.Disable(EnableCap.CullFace);
             Gl.DrawElements(PrimitiveType.Lines, _boneLinkCount * 2, DrawElementsType.UnsignedShort, IntPtr.Zero);
+            Gl.CheckErrors();
         }
 
         public void Dispose()
