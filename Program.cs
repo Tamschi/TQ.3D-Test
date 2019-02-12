@@ -31,6 +31,16 @@ namespace TQ._3D_Test
                 nativeWindow.Run();
             }
         }
+        void SetUpAttribute(VertexArrayObject vao, ShaderProgram program, string name, int size, VertexAttribType type, bool normalized, uint relativeOffset, uint bindingIndex)
+        {
+            if (program.TryGetAttributeLocation(name, out var location))
+            {
+                vao.AttributeFormat(location, size, type, normalized, relativeOffset);
+                vao.AttributeBinding(location, bindingIndex);
+                vao.EnableAttribute(location);
+            }
+            else throw new NotImplementedException();
+        }
 
         private void ContextCreated(object sender, NativeWindowEventArgs e)
         {
@@ -120,30 +130,12 @@ namespace TQ._3D_Test
                             {
                                 switch (attribute)
                                 {
-                                    case AttributeId.Position:
-                                        Console.Write(" position...");
-                                        if (_program.TryGetAttributeLocation("position", out var positionAttribute))
-                                        {
-                                            _vao.AttributeFormat(positionAttribute, 3, VertexAttribType.Float, normalized: false, offset);
-                                            _vao.AttributeBinding(positionAttribute, 0);
-                                            _vao.EnableAttribute(positionAttribute);
-                                        }
-                                        else throw new NotImplementedException();
-                                        break;
+                                    case AttributeId.Position: SetUpAttribute(_vao, _program, "position", 3, VertexAttribType.Float, normalized: false, offset, bindingIndex: 0); break;
                                     case AttributeId.Normal:
                                     case AttributeId.Tangent:
                                     case AttributeId.Bitangent:
                                         break;
-                                    case AttributeId.UV:
-                                        Console.Write(" uv...");
-                                        if (_program.TryGetAttributeLocation("uv", out var uvAttribute))
-                                        {
-                                            _vao.AttributeFormat(uvAttribute, 2, VertexAttribType.Float, normalized: false, offset);
-                                            _vao.AttributeBinding(uvAttribute, 0);
-                                            _vao.EnableAttribute(uvAttribute);
-                                        }
-                                        else throw new NotImplementedException();
-                                        break;
+                                    case AttributeId.UV: SetUpAttribute(_vao, _program, "uv", 2, VertexAttribType.Float, normalized: false, offset, bindingIndex: 0); break;
                                     case AttributeId.Weights:
                                     case AttributeId.Bones:
                                     case AttributeId.Bytes:
@@ -233,13 +225,7 @@ namespace TQ._3D_Test
                     _boneProgram.Link();
                     Console.WriteLine(" OK!");
 
-                    if (_boneProgram.TryGetAttributeLocation("position", out var bonePositionAttribute))
-                    {
-                        _boneVao.AttributeFormat(bonePositionAttribute, size: 3, VertexAttribType.Float, normalized: false, relativeOffset: 0);
-                        _boneVao.AttributeBinding(bonePositionAttribute, 0);
-                        _boneVao.EnableAttribute(bonePositionAttribute);
-                    }
-                    else throw new NotImplementedException();
+                    SetUpAttribute(_boneVao, _boneProgram, "position", 3, VertexAttribType.Float, normalized: false, relativeOffset: 0, bindingIndex: 0);
 
                     Gl.CheckErrors();
                 }
