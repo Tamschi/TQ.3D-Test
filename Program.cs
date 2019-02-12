@@ -1,5 +1,4 @@
 ﻿using DDS;
-using MathNet.Numerics.LinearAlgebra;
 using OpenGL;
 using OpenGL.CoreUI;
 using System;
@@ -8,8 +7,8 @@ using System.IO;
 using TQ.Mesh.Parts;
 using static TQ.Mesh.Parts.VertexBuffer;
 using TQTexture = global::TQ.Texture.Texture;
-using MathNet.Numerics.LinearAlgebra.Single;
 using System.Linq;
+using System.Numerics;
 
 namespace TQ._3D_Test
 {
@@ -176,30 +175,31 @@ namespace TQ._3D_Test
                 else if (part.Is(out Bones bones))
                 {
                     Console.Write("Loading Bones...");
-                    _boneMatrices = new DenseMatrix[bones.Count];
-                    _bonePositions = new DenseVector[bones.Count];
+                    _boneMatrices = new Matrix4x4[bones.Count];
+                    _bonePositions = new Vector3[bones.Count];
                     for (int i = 0; i < _boneMatrices.Length; i++)
-                    { _boneMatrices[i] = DenseMatrix.CreateIdentity(4); }
+                    { _boneMatrices[i] = Matrix4x4.Identity; }
 
                     foreach (var bone in bones)
                     {
                         var i = bone.Index;
-                        var position = new DenseVector(new[] { bone.Position[0], bone.Position[1], bone.Position[2], 1 });
-                        _bonePositions[i] = _boneMatrices[i] * position;
-                        var boneMatrix = new DenseMatrix(4, 4, new[] {
-                            bone.Axes[0], bone.Axes[1],bone.Axes[2],0,
-                            bone.Axes[3],bone.Axes[4],bone.Axes[5],0,
-                            bone.Axes[6],bone.Axes[7],bone.Axes[8],0,
-                            bone.Position[0],bone.Position[1],bone.Position[2],1
-                        });
-                        _boneMatrices[i] *= boneMatrix;
+                        var position = new Vector4(bone.Position[0], bone.Position[1], bone.Position[2], 1);
+                        var bonePosition = Vector4.Transform(position, _boneMatrices[i]);
+                        _bonePositions[i] = new Vector3(bonePosition.X, bonePosition.Y, bonePosition.Z);
+                        var boneMatrix = new Matrix4x4(
+                            bone.Axes[0], bone.Axes[1], bone.Axes[2], 0,
+                            bone.Axes[3], bone.Axes[4], bone.Axes[5], 0,
+                            bone.Axes[6], bone.Axes[7], bone.Axes[8], 0,
+                            bone.Position[0], bone.Position[1], bone.Position[2], 1
+                        );
+                        _boneMatrices[i] = boneMatrix * _boneMatrices[i];
                         foreach (var childBone in bone)
                         { _boneMatrices[childBone.Index] = _boneMatrices[i]; }
                     }
 
                     _boneVbo = new Buffer();
                     Gl.CheckErrors();
-                    Span<float> boneVboData = _bonePositions.SelectMany(x => new[] { x[0] / 2, x[1] / 2 - .7f, x[2] / 2 }).ToArray().AsSpan();
+                    Span<Vector3> boneVboData = (from p in _bonePositions select new Vector3(p.X / 2, p.Y / 2 - .7f, p.Z / 2)).ToArray().AsSpan();
                     _boneVbo.BufferData(boneVboData, BufferUsage.StaticDraw);
                     Gl.CheckErrors();
 
@@ -230,8 +230,8 @@ namespace TQ._3D_Test
             }
         }
 
-        Matrix<float>[] _boneMatrices;
-        Vector<float>[] _bonePositions;
+        Matrix4x4[] _boneMatrices;
+        Vector3[] _bonePositions;
         ShaderProgram _boneProgram;
         uint _bonePositionAttribute;
 
@@ -273,7 +273,7 @@ namespace TQ._3D_Test
             { Gl.DrawElements(PrimitiveType.Triangles, count * 3, DrawElementsType.UnsignedShort, (IntPtr)(first * sizeof(ushort))); }
             Gl.DisableVertexAttribArray(_uvAttribute);
             Gl.DisableVertexAttribArray(_positionAttribute);
-            
+
             _boneProgram.Use();
             Gl.Disable(EnableCap.CullFace);
             _boneVbo.Bind(BufferTarget.ArrayBuffer);
