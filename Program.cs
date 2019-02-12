@@ -156,12 +156,17 @@ namespace TQ._3D_Test
                         }
                         {
                             Console.Write($"Setting up uniforms...");
-                            _uniformTransformation = Gl.GetUniformLocation((uint)_program, "transformation");
-                            unsafe
+                            if (_program.TryGetUniformLocation("transformation", out var transformationUniform))
                             {
-                                var matrix = stackalloc float[16] { .5f, 0, 0, 0, 0, .5f, 0, 0, 0, 0, .5f, 0, 0, -.7f, 0, 1 };
-                                Gl.ProgramUniformMatrix4f((uint)_program, _uniformTransformation, 1, transpose: false, ref matrix[0]);
+                                var matrix = new Matrix4x4(
+                                    .5f, 0, 0, 0,
+                                    0, .5f, 0, 0,
+                                    0, 0, .5f, 0,
+                                    0, -.7f, 0, 1
+                                );
+                                _program.UniformMatrix4f(transformationUniform, transpose: false, in matrix);
                             }
+                            else throw new NotImplementedException();
                             Console.WriteLine(" OK!");
                         }
                     }
@@ -253,7 +258,6 @@ namespace TQ._3D_Test
         VertexArrayObject _vao;
         ShaderProgram _program;
         int _vertexCount;
-        int _uniformTransformation;
         (int, int)[] _drawRanges;
 
         void Render(object sender, NativeWindowEventArgs e)
