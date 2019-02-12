@@ -103,8 +103,8 @@ namespace TQ._3D_Test
                 {
                     Console.Write("Loading VBO...");
                     var vbo = new Buffer(true);
-                    _vao.VertexBuffer(0, vbo, IntPtr.Zero, vertexBuffer.Header.Stride);
                     vbo.BufferData(vertexBuffer.Buffer, BufferUsage.StaticDraw);
+                    _vao.VertexBuffer(0, vbo, IntPtr.Zero, vertexBuffer.Header.Stride);
                     Console.Write(" OK!");
                     attributes = vertexBuffer.Attributes.ToArray();
                     Console.Write($" (also got {attributes.Length} attributes)");
@@ -164,8 +164,8 @@ namespace TQ._3D_Test
                 {
                     Console.Write("Loading IBO...");
                     var ibo = new Buffer(true);
-                    _vao.ElementBuffer(ibo);
                     ibo.BufferData(indexBuffer.TriangleIndices, BufferUsage.StaticDraw);
+                    _vao.ElementBuffer(ibo);
                     Console.WriteLine(" OK!");
 
                     var drawRanges = new List<(int, int)>();
@@ -200,19 +200,19 @@ namespace TQ._3D_Test
                     }
 
                     var boneVbo = new Buffer(true);
+                    Span<Vector3> boneVboData = (from p in _bonePositions select new Vector3(p.X / 2, p.Y / 2 - .7f, p.Z / 2)).ToArray().AsSpan();
                     _boneVao.VertexBuffer(0, boneVbo, IntPtr.Zero, 3 * sizeof(float));
                     Gl.CheckErrors();
-                    Span<Vector3> boneVboData = (from p in _bonePositions select new Vector3(p.X / 2, p.Y / 2 - .7f, p.Z / 2)).ToArray().AsSpan();
                     boneVbo.BufferData(boneVboData, BufferUsage.StaticDraw);
                     Gl.CheckErrors();
 
                     //TODO: LINQ it!
                     var boneIbo = new Buffer(true);
-                    _boneVao.ElementBuffer(boneIbo);
                     Gl.CheckErrors();
                     var boneIboEntries = new List<(int, int)>();
                     foreach (var parent in bones) foreach (var child in parent) boneIboEntries.Add((parent.Index, child.Index));
                     boneIbo.BufferData(boneIboEntries.SelectMany(x => new[] { (ushort)x.Item1, (ushort)x.Item2 }).ToArray().AsSpan(), BufferUsage.StaticDraw);
+                    _boneVao.ElementBuffer(boneIbo);
                     Gl.CheckErrors();
                     _boneLinkCount = boneIboEntries.Count;
 
