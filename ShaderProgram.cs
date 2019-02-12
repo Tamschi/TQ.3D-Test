@@ -22,8 +22,16 @@ namespace TQ._3D_Test
 
         public void Dispose() => Gl.DeleteProgram(_handle);
 
-        internal AttributeIndex GetAttributeLocation(string inputName)
-            => new AttributeIndex((uint)Gl.GetAttribLocation(_handle, inputName));
+        internal bool TryGetAttributeLocation(string inputName, out AttributeIndex index)
+        {
+            switch (Gl.GetAttribLocation(_handle, inputName))
+            {
+                case -1: index = default; return false;
+                case int i:
+                    index = new AttributeIndex((uint)i);
+                    return true;
+            }
+        }
 
         public static explicit operator uint(ShaderProgram program) => program._handle;
     }

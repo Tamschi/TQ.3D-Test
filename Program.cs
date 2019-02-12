@@ -122,10 +122,13 @@ namespace TQ._3D_Test
                                 {
                                     case AttributeId.Position:
                                         Console.Write(" position...");
-                                        var positionAttribute = _program.GetAttributeLocation("position");
-                                        _vao.AttributeFormat(positionAttribute, 3, VertexAttribType.Float, normalized: false, offset);
-                                        _vao.AttributeBinding(positionAttribute, 0);
-                                        _vao.EnableAttribute(positionAttribute);
+                                        if (_program.TryGetAttributeLocation("position", out var positionAttribute))
+                                        {
+                                            _vao.AttributeFormat(positionAttribute, 3, VertexAttribType.Float, normalized: false, offset);
+                                            _vao.AttributeBinding(positionAttribute, 0);
+                                            _vao.EnableAttribute(positionAttribute);
+                                        }
+                                        else throw new NotImplementedException();
                                         break;
                                     case AttributeId.Normal:
                                     case AttributeId.Tangent:
@@ -133,10 +136,13 @@ namespace TQ._3D_Test
                                         break;
                                     case AttributeId.UV:
                                         Console.Write(" uv...");
-                                        var uvAttribute = _program.GetAttributeLocation("uv");
-                                        _vao.AttributeFormat(uvAttribute, 2, VertexAttribType.Float, normalized: false, offset);
-                                        _vao.AttributeBinding(uvAttribute, 0);
-                                        _vao.EnableAttribute(uvAttribute);
+                                        if (_program.TryGetAttributeLocation("uv", out var uvAttribute))
+                                        {
+                                            _vao.AttributeFormat(uvAttribute, 2, VertexAttribType.Float, normalized: false, offset);
+                                            _vao.AttributeBinding(uvAttribute, 0);
+                                            _vao.EnableAttribute(uvAttribute);
+                                        }
+                                        else throw new NotImplementedException();
                                         break;
                                     case AttributeId.Weights:
                                     case AttributeId.Bones:
@@ -222,10 +228,13 @@ namespace TQ._3D_Test
                     _boneProgram.Link();
                     Console.WriteLine(" OK!");
 
-                    var bonePositionAttribute = _boneProgram.GetAttributeLocation("position");
-                    _boneVao.AttributeFormat(bonePositionAttribute, size: 3, VertexAttribType.Float, normalized: false, relativeOffset: 0);
-                    _boneVao.AttributeBinding(bonePositionAttribute, 0);
-                    _boneVao.EnableAttribute(bonePositionAttribute);
+                    if (_boneProgram.TryGetAttributeLocation("position", out var bonePositionAttribute))
+                    {
+                        _boneVao.AttributeFormat(bonePositionAttribute, size: 3, VertexAttribType.Float, normalized: false, relativeOffset: 0);
+                        _boneVao.AttributeBinding(bonePositionAttribute, 0);
+                        _boneVao.EnableAttribute(bonePositionAttribute);
+                    }
+                    else throw new NotImplementedException();
 
                     Gl.CheckErrors();
                 }
