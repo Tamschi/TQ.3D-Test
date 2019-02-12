@@ -39,7 +39,7 @@ namespace TQ._3D_Test
                 vao.AttributeBinding(location, bindingIndex);
                 vao.EnableAttribute(location);
             }
-            else throw new NotImplementedException();
+            else Console.Error.Write($" Missing attribute in shader: {name}...");
         }
 
         private void ContextCreated(object sender, NativeWindowEventArgs e)
@@ -131,16 +131,13 @@ namespace TQ._3D_Test
                                 switch (attribute)
                                 {
                                     case AttributeId.Position: SetUpAttribute(_vao, _program, "position", 3, VertexAttribType.Float, normalized: false, offset, bindingIndex: 0); break;
-                                    case AttributeId.Normal:
-                                    case AttributeId.Tangent:
-                                    case AttributeId.Bitangent:
-                                        break;
+                                    case AttributeId.Normal: SetUpAttribute(_vao, _program, "normal", 3, VertexAttribType.Float, normalized: true, offset, bindingIndex: 0); break;
+                                    case AttributeId.Tangent: SetUpAttribute(_vao, _program, "tangent", 3, VertexAttribType.Float, normalized: true, offset, bindingIndex: 0); break;
+                                    case AttributeId.Bitangent: SetUpAttribute(_vao, _program, "bitangent", 3, VertexAttribType.Float, normalized: true, offset, bindingIndex: 0); break;
                                     case AttributeId.UV: SetUpAttribute(_vao, _program, "uv", 2, VertexAttribType.Float, normalized: false, offset, bindingIndex: 0); break;
-                                    case AttributeId.Weights:
-                                    case AttributeId.Bones:
-                                    case AttributeId.Bytes:
-                                    default:
-                                        break;
+                                    case AttributeId.Weights: SetUpAttribute(_vao, _program, "weights", 4, VertexAttribType.Float, normalized: false, offset, bindingIndex: 0); break;
+                                    case AttributeId.Bones: SetUpAttribute(_vao, _program, "bones", 4, VertexAttribType.Byte, normalized: false, offset, bindingIndex: 0); break;
+                                    case AttributeId.Bytes: SetUpAttribute(_vao, _program, "bytes", 4, VertexAttribType.UnsignedByte, normalized: false, offset, bindingIndex: 0); break;
                                 }
                                 offset += GetAttributeSize(attribute);
                             }
