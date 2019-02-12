@@ -109,10 +109,8 @@ namespace TQ._3D_Test
                             Console.Write($"Not really loading {shader.FileName}...");
                             using (var vertexShader = new Shader(ShaderType.VertexShader, File.ReadAllText("vertex.glsl")))
                             using (var fragmentShader = new Shader(ShaderType.FragmentShader, File.ReadAllText("fragment.glsl")))
-                            {
-                                _program = new ShaderProgram(vertexShader, fragmentShader);
-                                _program.Link();
-                            }
+                            { _program = new ShaderProgram(vertexShader, fragmentShader); }
+                            _program.Link();
                             Console.WriteLine(" OK!");
                         }
                         {
@@ -221,11 +219,9 @@ namespace TQ._3D_Test
 
                     using (var vertexShader = new Shader(ShaderType.VertexShader, File.ReadAllText("bones.vertex.glsl")))
                     using (var fragmentShader = new Shader(ShaderType.FragmentShader, File.ReadAllText("bones.fragment.glsl")))
-                    {
-                        _boneProgram = new ShaderProgram(vertexShader, fragmentShader);
-                        _boneProgram.Link();
-                        _bonePositionAttribute = (uint)_boneProgram.GetAttributeLocation("position");
-                    }
+                    { _boneProgram = new ShaderProgram(vertexShader, fragmentShader); }
+                    _boneProgram.Link();
+                    _bonePositionAttribute = (uint)_boneProgram.GetAttributeLocation("position");
                     Console.WriteLine(" OK!");
 
                     Gl.CheckErrors();
