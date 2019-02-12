@@ -106,9 +106,9 @@ namespace TQ._3D_Test
                     foreach (var shader in shaders)
                     {
                         {
-                            Console.Write($"Not really loading {shader.FileName}...");
-                            using (var vertexShader = new Shader(ShaderType.VertexShader, File.ReadAllText("vertex.glsl")))
-                            using (var fragmentShader = new Shader(ShaderType.FragmentShader, File.ReadAllText("fragment.glsl")))
+                            Console.Write($"Sort of loading {shader.FileName}...");
+                            using (var vertexShader = new Shader(ShaderType.VertexShader, File.ReadAllText($"{shader.FileName}.vertex.glsl")))
+                            using (var fragmentShader = new Shader(ShaderType.FragmentShader, File.ReadAllText($"{shader.FileName}.fragment.glsl")))
                             { _program = new ShaderProgram(vertexShader, fragmentShader); }
                             _program.Link();
                             Console.WriteLine(" OK!");
