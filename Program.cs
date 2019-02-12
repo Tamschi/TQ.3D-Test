@@ -39,7 +39,7 @@ namespace TQ._3D_Test
                 vao.AttributeBinding(location, bindingIndex);
                 vao.EnableAttribute(location);
             }
-            else Console.Error.Write($" Missing attribute in shader: {name}...");
+            else Console.Write($" Missing attribute in shader: {name}...");
         }
 
         private void ContextCreated(object sender, NativeWindowEventArgs e)
