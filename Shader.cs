@@ -4,7 +4,7 @@ using System.Text;
 
 namespace TQ._3D_Test
 {
-    class Shader : IDisposable
+    readonly struct Shader : IDisposable
     {
         readonly uint _handle;
         public Shader(ShaderType shaderType, string source)
@@ -27,13 +27,8 @@ namespace TQ._3D_Test
             }
             catch { Dispose(); throw; }
         }
-
-        ~Shader() => Dispose();
-        public void Dispose()
-        {
-            Gl.DeleteShader(_handle);
-            GC.SuppressFinalize(this);
-        }
+        
+        public void Dispose() => Gl.DeleteShader(_handle);
 
         public static explicit operator uint(Shader shader) => shader._handle;
     }

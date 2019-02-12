@@ -36,6 +36,7 @@ namespace TQ._3D_Test
         {
             AttributeId[] attributes = null;
 
+            _vao = new VertexArrayObject(true);
             {
                 var texture = new TQTexture(File.ReadAllBytes("texture.tex"));
                 _texture = new Texture(TextureTarget.Texture2d);
@@ -172,6 +173,7 @@ namespace TQ._3D_Test
                 }
                 else if (part.Is(out Bones bones))
                 {
+                    _boneVao = new VertexArrayObject(true);
                     Console.Write("Loading Bones...");
                     _boneMatrices = new Matrix4x4[bones.Count];
                     _bonePositions = new Vector3[bones.Count];
@@ -233,12 +235,14 @@ namespace TQ._3D_Test
         ShaderProgram _boneProgram;
         uint _bonePositionAttribute;
 
+        VertexArrayObject _boneVao;
         Buffer _boneVbo;
         Buffer _boneIbo;
         int _boneLinkCount;
 
         Texture _texture;
 
+        VertexArrayObject _vao;
         Buffer _vbo;
         Buffer _ibo;
         Shader _vertexShader;
@@ -257,27 +261,29 @@ namespace TQ._3D_Test
         {
             Gl.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
+            _vao.Bind();
             _program.Use();
             Gl.Enable(EnableCap.CullFace);
             Gl.CullFace(CullFaceMode.Front);
             Gl.FrontFace(FrontFaceDirection.Ccw);
-            _vbo.BindVertex(0, IntPtr.Zero, _vertexStride);
+            _vao.VertexBuffer(0, _vbo, IntPtr.Zero, _vertexStride);
             Gl.VertexAttribFormat(_positionAttribute, 3, Gl.FLOAT, normalized: false, _positionOffset);
             Gl.VertexAttribBinding(_positionAttribute, 0);
             Gl.EnableVertexAttribArray(_positionAttribute);
             Gl.VertexAttribFormat(_uvAttribute, 2, Gl.FLOAT, normalized: false, _uvOffset);
             Gl.VertexAttribBinding(_uvAttribute, 0);
             Gl.EnableVertexAttribArray(_uvAttribute);
-            _ibo.Bind(BufferTarget.ElementArrayBuffer);
+            _vao.ElementBuffer(_ibo);
             _texture.BindUnit(0);
             foreach (var (first, count) in _drawRanges)
             { Gl.DrawElements(PrimitiveType.Triangles, count * 3, DrawElementsType.UnsignedShort, (IntPtr)(first * sizeof(ushort))); }
             Gl.DisableVertexAttribArray(_uvAttribute);
             Gl.DisableVertexAttribArray(_positionAttribute);
 
+            _boneVao.Bind();
             _boneProgram.Use();
             Gl.Disable(EnableCap.CullFace);
-            _boneVbo.BindVertex(0, IntPtr.Zero, 3 * sizeof(float));
+            _boneVao.VertexBuffer(0, _boneVbo, IntPtr.Zero, 3 * sizeof(float));
             Gl.VertexAttribFormat(_bonePositionAttribute, size: 3, Gl.FLOAT, normalized: false, relativeoffset: 0);
             Gl.VertexAttribBinding(_bonePositionAttribute, 0);
             Gl.EnableVertexAttribArray(_bonePositionAttribute);

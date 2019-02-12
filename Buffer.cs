@@ -14,7 +14,7 @@ namespace TQ._3D_Test
             GC.SuppressFinalize(this);
         }
 
-        public void BindVertex(uint bindingIndex, IntPtr offset, int stride) => Gl.BindVertexBuffer(bindingIndex, _handle, offset, stride);
+        public static explicit operator uint(Buffer buffer) => buffer._handle;
 
         internal unsafe void BufferData<T>(Span<T> data, BufferUsage usage) where T : unmanaged
         { fixed (T* ptr = data) Gl.NamedBufferData(_handle, (uint)(data.Length * sizeof(T)), (IntPtr)ptr, usage); }
