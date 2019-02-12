@@ -18,10 +18,13 @@ namespace TQ._3D_Test
         internal void Bind()
             => Gl.BindVertexArray(_handle);
 
-        internal void AttributeFormat(uint attributeIndex, int size, VertexAttribType type, bool normalized, uint relativeOffset)
-            => Gl.VertexArrayAttribFormat(_handle, attributeIndex, size, type, normalized, relativeOffset);
+        internal void AttributeFormat(AttributeIndex attributeIndex, int size, VertexAttribType type, bool normalized, uint relativeOffset)
+            => Gl.VertexArrayAttribFormat(_handle, (uint)attributeIndex, size, type, normalized, relativeOffset);
 
-        internal void AttributeBinding(uint attributeIndex, uint bindingIndex)
-            => Gl.VertexArrayAttribBinding(_handle, attributeIndex, bindingIndex);
+        internal void AttributeBinding(AttributeIndex attributeIndex, uint bindingIndex)
+            => Gl.VertexArrayAttribBinding(_handle, (uint)attributeIndex, bindingIndex);
+
+        internal void EnableAttribute(AttributeIndex index)
+            => Gl.EnableVertexArrayAttrib(_handle, (uint)index);
     }
 }

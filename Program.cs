@@ -115,8 +115,6 @@ namespace TQ._3D_Test
                         }
                         {
                             Console.Write($"Setting up attibutes...");
-                            _positionAttribute = (uint)_program.GetAttributeLocation("position");
-                            _uvAttribute = (uint)_program.GetAttributeLocation("uv");
                             var offset = 0u;
                             foreach (var attribute in attributes)
                             {
@@ -124,8 +122,10 @@ namespace TQ._3D_Test
                                 {
                                     case AttributeId.Position:
                                         Console.Write(" position...");
-                                        _vao.AttributeFormat(_positionAttribute, 3, VertexAttribType.Float, normalized: false, offset);
-                                        _vao.AttributeBinding(_positionAttribute, 0);
+                                        var positionAttribute = _program.GetAttributeLocation("position");
+                                        _vao.AttributeFormat(positionAttribute, 3, VertexAttribType.Float, normalized: false, offset);
+                                        _vao.AttributeBinding(positionAttribute, 0);
+                                        _vao.EnableAttribute(positionAttribute);
                                         break;
                                     case AttributeId.Normal:
                                     case AttributeId.Tangent:
@@ -133,8 +133,10 @@ namespace TQ._3D_Test
                                         break;
                                     case AttributeId.UV:
                                         Console.Write(" uv...");
-                                        _vao.AttributeFormat(_uvAttribute, 2, VertexAttribType.Float, normalized: false, offset);
-                                        _vao.AttributeBinding(_uvAttribute, 0);
+                                        var uvAttribute = _program.GetAttributeLocation("uv");
+                                        _vao.AttributeFormat(uvAttribute, 2, VertexAttribType.Float, normalized: false, offset);
+                                        _vao.AttributeBinding(uvAttribute, 0);
+                                        _vao.EnableAttribute(uvAttribute);
                                         break;
                                     case AttributeId.Weights:
                                     case AttributeId.Bones:
@@ -204,9 +206,6 @@ namespace TQ._3D_Test
                     boneVbo.BufferData(boneVboData, BufferUsage.StaticDraw);
                     Gl.CheckErrors();
 
-                    _boneVao.AttributeFormat(_bonePositionAttribute, size: 3, VertexAttribType.Float, normalized: false, relativeOffset: 0);
-                    _boneVao.AttributeBinding(_bonePositionAttribute, 0);
-
                     //TODO: LINQ it!
                     var boneIbo = new Buffer(true);
                     _boneVao.ElementBuffer(boneIbo);
@@ -221,8 +220,12 @@ namespace TQ._3D_Test
                     using (var fragmentShader = new Shader(ShaderType.FragmentShader, File.ReadAllText("bones.fragment.glsl")))
                     { _boneProgram = new ShaderProgram(vertexShader, fragmentShader); }
                     _boneProgram.Link();
-                    _bonePositionAttribute = (uint)_boneProgram.GetAttributeLocation("position");
                     Console.WriteLine(" OK!");
+
+                    var bonePositionAttribute = _boneProgram.GetAttributeLocation("position");
+                    _boneVao.AttributeFormat(bonePositionAttribute, size: 3, VertexAttribType.Float, normalized: false, relativeOffset: 0);
+                    _boneVao.AttributeBinding(bonePositionAttribute, 0);
+                    _boneVao.EnableAttribute(bonePositionAttribute);
 
                     Gl.CheckErrors();
                 }
@@ -232,7 +235,6 @@ namespace TQ._3D_Test
         Matrix4x4[] _boneMatrices;
         Vector3[] _bonePositions;
         ShaderProgram _boneProgram;
-        uint _bonePositionAttribute;
 
         VertexArrayObject _boneVao;
         int _boneLinkCount;
@@ -244,8 +246,6 @@ namespace TQ._3D_Test
         int _vertexCount;
         int _uniformTransformation;
         (int, int)[] _drawRanges;
-        uint _positionAttribute;
-        uint _uvAttribute;
 
         void Render(object sender, NativeWindowEventArgs e)
         {
@@ -256,20 +256,14 @@ namespace TQ._3D_Test
             Gl.Enable(EnableCap.CullFace);
             Gl.CullFace(CullFaceMode.Front);
             Gl.FrontFace(FrontFaceDirection.Ccw);
-            Gl.EnableVertexAttribArray(_positionAttribute);
-            Gl.EnableVertexAttribArray(_uvAttribute);
             _texture.BindUnit(0);
             foreach (var (first, count) in _drawRanges)
             { Gl.DrawElements(PrimitiveType.Triangles, count * 3, DrawElementsType.UnsignedShort, (IntPtr)(first * sizeof(ushort))); }
-            Gl.DisableVertexAttribArray(_uvAttribute);
-            Gl.DisableVertexAttribArray(_positionAttribute);
 
             _boneVao.Bind();
             _boneProgram.Use();
             Gl.Disable(EnableCap.CullFace);
-            Gl.EnableVertexAttribArray(_bonePositionAttribute);
             Gl.DrawElements(PrimitiveType.Lines, _boneLinkCount * 2, DrawElementsType.UnsignedShort, IntPtr.Zero);
-            Gl.DisableVertexAttribArray(_bonePositionAttribute);
         }
 
         public void Dispose()
