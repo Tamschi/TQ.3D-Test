@@ -279,7 +279,7 @@ namespace TQ._3D_Test
             _boneVbo.Bind(BufferTarget.ArrayBuffer);
             _boneIbo.Bind(BufferTarget.ElementArrayBuffer);
             Gl.VertexAttribPointer(_bonePositionAttribute, size: 3, VertexAttribType.Float, normalized: false, 3 * sizeof(float), IntPtr.Zero);
-            Gl.EnableVertexAttribArray((uint)_bonePositionAttribute);
+            Gl.EnableVertexAttribArray(_bonePositionAttribute);
             Gl.DrawElements(PrimitiveType.Lines, _boneLinkCount * 2, DrawElementsType.UnsignedShort, IntPtr.Zero);
             Gl.DisableVertexAttribArray(_bonePositionAttribute);
         }
