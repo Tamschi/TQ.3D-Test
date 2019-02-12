@@ -21,6 +21,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\TQ.Animation Test\TQ.Animation Test.csproj" />
+    <ProjectReference Include="..\TQ.Animation\TQ.Animation.csproj" />
     <ProjectReference Include="..\TQ.Mesh Test\TQ.Mesh Test.csproj" />
     <ProjectReference Include="..\TQ.Mesh\TQ.Mesh.csproj" />
     <ProjectReference Include="..\TQ.Texture Test\TQ.Texture Test.csproj" />

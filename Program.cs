@@ -38,8 +38,7 @@ namespace TQ._3D_Test
 
             {
                 var texture = new TQTexture(File.ReadAllBytes("texture.tex"));
-                _texture = new Texture();
-                _texture.Bind(TextureTarget.Texture2d);
+                _texture = new Texture(TextureTarget.Texture2d);
                 _texture.Parameteri(TextureParameterName.TextureWrapS, TextureWrapMode.Repeat);
                 _texture.Parameteri(TextureParameterName.TextureWrapT, TextureWrapMode.Repeat);
                 _texture.Parameteri(TextureParameterName.TextureMinFilter, TextureMinFilter.Linear);
@@ -57,26 +56,26 @@ namespace TQ._3D_Test
                         }
                     }
                     else throw new NotImplementedException();
+
+                    _texture.Storage2D((int)dds.Header.MipmapCount, internalFormat, (int)dds.Header.Width, (int)dds.Header.Height);
                     foreach (var layer in dds)
                     {
                         int level = 0;
-                        Console.WriteLine($"Error: {Gl.GetError()}");
                         foreach (var mip in layer)
                         {
                             unsafe
                             {
                                 fixed (byte* ptr = mip.Data)
                                 {
-                                    Gl.CompressedTexImage2D(
-                                        TextureTarget.Texture2d,
+                                    _texture.CompressedSubImage2D(
                                         level++,
                                         internalFormat,
+                                        xOffset: 0,
+                                        yOffset: 0,
                                         width: (int)Math.Max(1, (dds.Header.Width * 2) >> level),
                                         height: (int)Math.Max(1, (dds.Header.Height * 2) >> level),
-                                        border: 0,
-                                        mip.Data.Length,
-                                        (IntPtr)ptr);
-                                    Console.WriteLine($"Error: {Gl.GetError()}");
+                                        data: mip.Data);
+                                    Gl.CheckErrors();
                                 }
                             }
                         }
@@ -265,6 +264,7 @@ namespace TQ._3D_Test
             Gl.FrontFace(FrontFaceDirection.Ccw);
             _vbo.Bind(BufferTarget.ArrayBuffer);
             _ibo.Bind(BufferTarget.ElementArrayBuffer);
+            _texture.BindUnit(0);
             Gl.VertexAttribPointer(_positionAttribute, size: 3, VertexAttribType.Float, normalized: false, _vertexStride, _positionOffset);
             Gl.EnableVertexAttribArray(_positionAttribute);
             Gl.VertexAttribPointer(_uvAttribute, size: 2, VertexAttribType.Float, normalized: false, _vertexStride, _uvOffset);
