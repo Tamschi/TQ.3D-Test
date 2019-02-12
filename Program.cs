@@ -247,18 +247,18 @@ namespace TQ._3D_Test
         {
             Gl.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
-            _vao.Bind();
-            _program.Use();
             Gl.Enable(EnableCap.CullFace);
             Gl.CullFace(CullFaceMode.Front);
             Gl.FrontFace(FrontFaceDirection.Ccw);
+            _program.Use();
+            _vao.Bind();
             _texture.BindUnit(0);
             foreach (var (first, count) in _drawRanges)
             { Gl.DrawElements(PrimitiveType.Triangles, count * 3, DrawElementsType.UnsignedShort, (IntPtr)(first * sizeof(ushort))); }
 
-            _boneVao.Bind();
-            _boneProgram.Use();
             Gl.Disable(EnableCap.CullFace);
+            _boneProgram.Use();
+            _boneVao.Bind();
             Gl.DrawElements(PrimitiveType.Lines, _boneLinkCount * 2, DrawElementsType.UnsignedShort, IntPtr.Zero);
             Gl.CheckErrors();
         }
