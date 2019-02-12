@@ -14,7 +14,7 @@ namespace TQ._3D_Test
 {
     class Program : IDisposable
     {
-        static void Main(string[] args)
+        static void Main()
         {
             using (var program = new Program())
             { program.Run(); }
@@ -183,14 +183,14 @@ namespace TQ._3D_Test
                     foreach (var bone in bones)
                     {
                         var i = bone.Index;
-                        var position = new Vector4(bone.Position[0], bone.Position[1], bone.Position[2], 1);
+                        var position = new Vector4(bone.Position, 1);
                         var bonePosition = Vector4.Transform(position, _boneMatrices[i]);
                         _bonePositions[i] = new Vector3(bonePosition.X, bonePosition.Y, bonePosition.Z);
                         var boneMatrix = new Matrix4x4(
                             bone.Axes[0], bone.Axes[1], bone.Axes[2], 0,
                             bone.Axes[3], bone.Axes[4], bone.Axes[5], 0,
                             bone.Axes[6], bone.Axes[7], bone.Axes[8], 0,
-                            bone.Position[0], bone.Position[1], bone.Position[2], 1
+                            bone.Position.X, bone.Position.Y, bone.Position.Z, 1
                         );
                         _boneMatrices[i] = boneMatrix * _boneMatrices[i];
                         foreach (var childBone in bone)
