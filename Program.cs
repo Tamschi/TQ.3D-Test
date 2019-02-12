@@ -107,11 +107,12 @@ namespace TQ._3D_Test
                     {
                         {
                             Console.Write($"Not really loading {shader.FileName}...");
-                            _vertexShader = new Shader(ShaderType.VertexShader, File.ReadAllText("vertex.glsl"));
-                            _fragmentShader = new Shader(ShaderType.FragmentShader, File.ReadAllText("fragment.glsl"));
-                            _program = new ShaderProgram(_vertexShader, _fragmentShader);
-                            _program.Link();
-                            _program.Use();
+                            using (var vertexShader = new Shader(ShaderType.VertexShader, File.ReadAllText("vertex.glsl")))
+                            using (var fragmentShader = new Shader(ShaderType.FragmentShader, File.ReadAllText("fragment.glsl")))
+                            {
+                                _program = new ShaderProgram(vertexShader, fragmentShader);
+                                _program.Link();
+                            }
                             Console.WriteLine(" OK!");
                         }
                         {
@@ -125,7 +126,8 @@ namespace TQ._3D_Test
                                 {
                                     case AttributeId.Position:
                                         Console.Write(" position...");
-                                        _positionOffset = offset;
+                                        _vao.AttributeFormat(_positionAttribute, 3, VertexAttribType.Float, normalized: false, offset);
+                                        _vao.AttributeBinding(_positionAttribute, 0);
                                         break;
                                     case AttributeId.Normal:
                                     case AttributeId.Tangent:
@@ -133,7 +135,8 @@ namespace TQ._3D_Test
                                         break;
                                     case AttributeId.UV:
                                         Console.Write(" uv...");
-                                        _uvOffset = offset;
+                                        _vao.AttributeFormat(_uvAttribute, 2, VertexAttribType.Float, normalized: false, offset);
+                                        _vao.AttributeBinding(_uvAttribute, 0);
                                         break;
                                     case AttributeId.Weights:
                                     case AttributeId.Bones:
@@ -203,6 +206,9 @@ namespace TQ._3D_Test
                     boneVbo.BufferData(boneVboData, BufferUsage.StaticDraw);
                     Gl.CheckErrors();
 
+                    _boneVao.AttributeFormat(_bonePositionAttribute, size: 3, VertexAttribType.Float, normalized: false, relativeOffset: 0);
+                    _boneVao.AttributeBinding(_bonePositionAttribute, 0);
+
                     //TODO: LINQ it!
                     var boneIbo = new Buffer(true);
                     _boneVao.ElementBuffer(boneIbo);
@@ -213,17 +219,13 @@ namespace TQ._3D_Test
                     Gl.CheckErrors();
                     _boneLinkCount = boneIboEntries.Count;
 
-                    var vertexShader = new Shader(ShaderType.VertexShader, File.ReadAllText("bones.vertex.glsl"));
-                    Gl.CheckErrors();
-                    var fragmentShader = new Shader(ShaderType.FragmentShader, File.ReadAllText("bones.fragment.glsl"));
-                    Gl.CheckErrors();
-                    _boneProgram = new ShaderProgram(vertexShader, fragmentShader);
-                    Gl.CheckErrors();
-                    _boneProgram.Link();
-                    Gl.CheckErrors();
-                    _boneProgram.Use();
-                    Gl.CheckErrors();
-                    _bonePositionAttribute = (uint)_boneProgram.GetAttributeLocation("position");
+                    using (var vertexShader = new Shader(ShaderType.VertexShader, File.ReadAllText("bones.vertex.glsl")))
+                    using (var fragmentShader = new Shader(ShaderType.FragmentShader, File.ReadAllText("bones.fragment.glsl")))
+                    {
+                        _boneProgram = new ShaderProgram(vertexShader, fragmentShader);
+                        _boneProgram.Link();
+                        _bonePositionAttribute = (uint)_boneProgram.GetAttributeLocation("position");
+                    }
                     Console.WriteLine(" OK!");
 
                     Gl.CheckErrors();
@@ -242,16 +244,12 @@ namespace TQ._3D_Test
         Texture _texture;
 
         VertexArrayObject _vao;
-        Shader _vertexShader;
-        Shader _fragmentShader;
         ShaderProgram _program;
         int _vertexCount;
         int _uniformTransformation;
         (int, int)[] _drawRanges;
         uint _positionAttribute;
-        uint _positionOffset;
         uint _uvAttribute;
-        uint _uvOffset;
 
         void Render(object sender, NativeWindowEventArgs e)
         {
@@ -262,11 +260,7 @@ namespace TQ._3D_Test
             Gl.Enable(EnableCap.CullFace);
             Gl.CullFace(CullFaceMode.Front);
             Gl.FrontFace(FrontFaceDirection.Ccw);
-            Gl.VertexAttribFormat(_positionAttribute, 3, Gl.FLOAT, normalized: false, _positionOffset);
-            Gl.VertexAttribBinding(_positionAttribute, 0);
             Gl.EnableVertexAttribArray(_positionAttribute);
-            Gl.VertexAttribFormat(_uvAttribute, 2, Gl.FLOAT, normalized: false, _uvOffset);
-            Gl.VertexAttribBinding(_uvAttribute, 0);
             Gl.EnableVertexAttribArray(_uvAttribute);
             _texture.BindUnit(0);
             foreach (var (first, count) in _drawRanges)
@@ -277,8 +271,6 @@ namespace TQ._3D_Test
             _boneVao.Bind();
             _boneProgram.Use();
             Gl.Disable(EnableCap.CullFace);
-            Gl.VertexAttribFormat(_bonePositionAttribute, size: 3, Gl.FLOAT, normalized: false, relativeoffset: 0);
-            Gl.VertexAttribBinding(_bonePositionAttribute, 0);
             Gl.EnableVertexAttribArray(_bonePositionAttribute);
             Gl.DrawElements(PrimitiveType.Lines, _boneLinkCount * 2, DrawElementsType.UnsignedShort, IntPtr.Zero);
             Gl.DisableVertexAttribArray(_bonePositionAttribute);
@@ -286,9 +278,8 @@ namespace TQ._3D_Test
 
         public void Dispose()
         {
-            _vertexShader.Dispose();
-            _fragmentShader.Dispose();
             _program.Dispose();
+            _boneProgram.Dispose();
         }
     }
 }
